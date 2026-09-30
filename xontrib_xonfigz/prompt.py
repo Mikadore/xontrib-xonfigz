@@ -1,6 +1,8 @@
 from typing import Any
 
-from xonsh.built_ins import XonshSession  # type: ignore  # noqa: TC002
+from xonsh.built_ins import XonshSession
+
+from xontrib_xonfigz.color import Style  # type: ignore  # noqa: TC002
 
 
 class PromptFields:
@@ -233,14 +235,38 @@ class PromptFields:
 
 
 class PromptBuilder:
+    xsh: XonshSession
     fields: PromptFields
     prompt: str
+    _style: Style
 
     def __init__(self, xsh: XonshSession):
+        self.xsh = xsh
         self.fields = PromptFields(xsh)
         self.prompt = ""
+        self._style = Style(background=None, foreground=None)
 
-    def push(self, text: str) -> PromptBuilder:
+    def style(self, style: Style) -> PromptBuilder:
+        """
+        Set the current style for the prompt.
+        """
+        self.prompt += self._style.reset_modifiers()
+        self.prompt += style.render_modifiers()
+        self.prompt += style.render_color()
+        self._style = style
+
+        return self
+
+    def reset_style(self) -> PromptBuilder:
+        """
+        Reset the current style for the prompt.
+        """
+        self.prompt += self._style.reset_modifiers()
+        self._style = Style(background=None, foreground=None)
+        self.prompt += self._style.render_color()
+        return self
+
+    def add(self, text: str) -> PromptBuilder:
         """
         Push a raw string to the prompt, without
         rendering any fields.
@@ -248,6 +274,13 @@ class PromptBuilder:
         self.prompt += text
         return self
 
+    def render(self) -> str:
+        """
+        Install the prompt in the xonsh session.
+        """
+        self.prompt += self._style.reset_modifiers()
+        return self.prompt
+    
     @property
     def f(self) -> PromptFields:
         """
